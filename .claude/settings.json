@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/docskky/.claude/projects/**)",
+      "Read(//Volumes/ExtSSD/Users/docskky/Downloads/**)",
+      "Read(//Users/docskky/Desktop/**)",
+      "Read(//private/tmp/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(.venv/bin/python -c \"import server; print\\('imports ok'\\); print\\('tools:', [t for t in dir\\(server\\) if not t.startswith\\('_'\\)][:20]\\)\")",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -c \"import server; print\\('ok'\\)\")",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python -c \"import server; print\\('all imports ok'\\)\")",
+      "Bash(python3 -m py_compile memory.py font_ops.py server.py)",
+      "Bash(mkdir -p /Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp/.claude/skills/font-build)",
+      "Edit(/.claude/skills/font-build/**)",
+      "Bash(python3 -m py_compile .claude/skills/font-build/parse_spec.py)",
+      "Bash(git -C /Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp status)",
+      "Bash(git init *)"
+    ],
+    "additionalDirectories": [
+      "/Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp/.claude/skills"
+    ]
+  }
+}
