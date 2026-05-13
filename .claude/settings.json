@@ -16,7 +16,23 @@
       "Edit(/.claude/skills/font-build/**)",
       "Bash(python3 -m py_compile .claude/skills/font-build/parse_spec.py)",
       "Bash(git -C /Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp status)",
-      "Bash(git init *)"
+      "Bash(git init *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "WebFetch(domain:sandoll.atlassian.net)",
+      "Bash(python3 -m py_compile scripts/fetch_confluence.py)",
+      "Bash(python3 scripts/fetch_confluence.py 741998709 --recursive)",
+      "Bash(python3 scripts/fetch_confluence.py 2889187364 --recursive)",
+      "Bash(python3 scripts/fetch_confluence.py 2888958008 --recursive)",
+      "Bash(python3 scripts/fetch_confluence.py 741998709 --depth 2)",
+      "Bash(python3 -c \"import bs4; print\\(bs4.__version__\\)\")",
+      "Bash(python3 -m py_compile scripts/import_cases.py)",
+      "Bash(.venv/bin/python -c \"import bs4\")",
+      "Bash(.venv/bin/pip list *)",
+      "Bash(.venv/bin/python -m pip install -q -r requirements.txt)",
+      "Bash(.venv/bin/python scripts/import_cases.py --dry-run)",
+      "Bash(awk '{print $1}')",
+      "Bash(.venv/bin/python scripts/import_cases.py)"
     ],
     "additionalDirectories": [
       "/Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp/.claude/skills"
