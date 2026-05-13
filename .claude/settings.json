@@ -32,7 +32,10 @@
       "Bash(.venv/bin/python -m pip install -q -r requirements.txt)",
       "Bash(.venv/bin/python scripts/import_cases.py --dry-run)",
       "Bash(awk '{print $1}')",
-      "Bash(.venv/bin/python scripts/import_cases.py)"
+      "Bash(.venv/bin/python scripts/import_cases.py)",
+      "Read(//opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/bin/**)",
+      "Bash(.venv/bin/python --version)",
+      "Bash(.venv/bin/python -c \"import server; print\\('server imports ok'\\)\")"
     ],
     "additionalDirectories": [
       "/Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp/.claude/skills"
