@@ -2,7 +2,7 @@
 
 Setup (한 번만):
     1. https://id.atlassian.com/manage-profile/security/api-tokens 에서 토큰 발급
-    2. 프로젝트 루트에 .env 파일 생성:
+    2. 프로젝트 루트에 .env 파일 생성 (sample.env 참고):
         ATLASSIAN_EMAIL=your@sandoll.com
         ATLASSIAN_TOKEN=your-api-token
        또는 셸에서 export. 셸 env 가 .env 보다 우선한다.
@@ -10,7 +10,9 @@ Setup (한 번만):
 Usage:
     python scripts/fetch_confluence.py <page_id> [output_dir]
     python scripts/fetch_confluence.py 741998709
-    python scripts/fetch_confluence.py 741998709 ./wiki_cache
+    python scripts/fetch_confluence.py 741998709 data/wiki_cache
+
+기본 output_dir 은 $FONT_MCP_DATA_DIR/wiki_cache (없으면 <repo>/data/wiki_cache).
 
 결과:
     <output_dir>/<page_id>.json   — 전체 API 응답
@@ -30,32 +32,23 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 DOMAIN = "sandoll.atlassian.net"
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-def _load_dotenv() -> None:
-    """프로젝트 루트의 .env 파일에서 변수 로드. 셸 env 가 우선."""
-    # scripts/fetch_confluence.py → 부모 디렉터리가 프로젝트 루트
-    candidates = [
-        Path.cwd() / ".env",
-        Path(__file__).resolve().parent.parent / ".env",
-    ]
-    for path in candidates:
-        if not path.exists():
-            continue
-        for raw in path.read_text().splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            os.environ.setdefault(key, value)
-        return  # 첫 번째로 찾은 .env 만 사용
+# 셸 env 가 .env 보다 우선 (load_dotenv 기본 동작: override=False).
+load_dotenv(_PROJECT_ROOT / ".env")
+
+
+def _data_dir() -> Path:
+    return Path(
+        os.getenv("FONT_MCP_DATA_DIR") or str(_PROJECT_ROOT / "data")
+    ).expanduser()
 
 
 def _auth_header() -> str:
-    _load_dotenv()
     email = os.environ.get("ATLASSIAN_EMAIL")
     token = os.environ.get("ATLASSIAN_TOKEN")
     if not email or not token:
@@ -131,7 +124,7 @@ def _fetch_tree(page_id: str, out_dir: Path, depth: int, current: int = 0) -> No
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("page_id")
-    ap.add_argument("output_dir", nargs="?", default="./wiki_cache")
+    ap.add_argument("output_dir", nargs="?", default=str(_data_dir() / "wiki_cache"))
     ap.add_argument("--recursive", "-r", action="store_true",
                     help="자식 페이지까지 1단계 재귀 (--depth 1 과 동일)")
     ap.add_argument("--depth", "-d", type=int, default=0,

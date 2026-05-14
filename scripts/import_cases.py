@@ -1,12 +1,12 @@
-"""Confluence 캐시(wiki_cache/*.html) → ChromaDB 케이스 일괄 임포트.
+"""Confluence 캐시($FONT_MCP_DATA_DIR/wiki_cache/*.html) → ChromaDB 케이스 일괄 임포트.
 
 scripts/fetch_confluence.py 로 받은 페이지들을 파싱해서
 memory.CaseMemory.add() 로 등록한다.
 
 Usage:
-    python scripts/import_cases.py                  # 모든 페이지 임포트
-    python scripts/import_cases.py --dry-run        # 미리보기만 (DB 변경 없음)
-    python scripts/import_cases.py --cache wiki_cache --limit 5
+    python scripts/import_cases.py                # 모든 페이지 임포트
+    python scripts/import_cases.py --dry-run      # 미리보기만 (DB 변경 없음)
+    python scripts/import_cases.py --cache <dir> --limit 5
 
 페이지 구조 (Confluence 폰트제작이슈 템플릿 기준):
     <상태 패널> 해당 이슈는 해결되었습니다 / 해결되지 않았습니다 / 해결할 수 없습니다
@@ -19,16 +19,28 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
 
 # 프로젝트 루트를 import path 에 추가 (memory.py 임포트용)
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
 
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
 from memory import CaseMemory
+
+
+load_dotenv()
+
+
+def _data_dir() -> Path:
+    return Path(
+        os.getenv("FONT_MCP_DATA_DIR") or str(_PROJECT_ROOT / "data")
+    ).expanduser()
 
 
 # 본 페이지 자신 + 8개 카테고리 페이지 — 스킵
@@ -134,8 +146,9 @@ def build_case(html: str, title: str, page_id: str) -> dict | None:
 
 
 def main() -> None:
+    data_dir = _data_dir()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cache", default="./wiki_cache")
+    ap.add_argument("--cache", default=str(data_dir / "wiki_cache"))
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int, default=0, help="0=전체")
     args = ap.parse_args()
@@ -146,10 +159,10 @@ def main() -> None:
     if args.limit:
         html_files = html_files[: args.limit]
 
-    print(f"대상: {len(html_files)} 페이지")
+    print(f"대상: {len(html_files)} 페이지  (cache={cache_dir})")
 
     if not args.dry_run:
-        memory = CaseMemory(Path.home() / ".font-mcp" / "cases.json")
+        memory = CaseMemory(data_dir / "cases.json")
 
     stats = {"imported": 0, "skipped": 0, "failed": 0}
     for html_path in html_files:

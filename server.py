@@ -10,18 +10,27 @@ FastMCP 기반. stdio 트랜스포트로 Claude Desktop / Claude Code와 직접 
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from font_ops import FontOps
 from memory import CaseMemory
 
 
+load_dotenv()
+
+_PROJECT_ROOT = Path(__file__).resolve().parent
+_DATA_DIR = Path(
+    os.getenv("FONT_MCP_DATA_DIR") or str(_PROJECT_ROOT / "data")
+).expanduser()
+
 mcp = FastMCP("font-tools")
 ops = FontOps()
-memory = CaseMemory(Path.home() / ".font-mcp" / "cases.json")
+memory = CaseMemory(_DATA_DIR / "cases.json")
 
 
 # ──────────────────────────────────────────────────────────────────

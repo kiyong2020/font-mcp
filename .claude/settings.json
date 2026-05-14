@@ -35,7 +35,12 @@
       "Bash(.venv/bin/python scripts/import_cases.py)",
       "Read(//opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/bin/**)",
       "Bash(.venv/bin/python --version)",
-      "Bash(.venv/bin/python -c \"import server; print\\('server imports ok'\\)\")"
+      "Bash(.venv/bin/python -c \"import server; print\\('server imports ok'\\)\")",
+      "Read(//Users/docskky/.font-mcp/**)",
+      "Read(//Users/docskky/.font-mcp/chroma/**)",
+      "Bash(python -m py_compile data/scripts/fetch_confluence.py data/scripts/import_cases.py server.py)",
+      "Bash(git check-ignore *)",
+      "Bash(python -m py_compile scripts/fetch_confluence.py scripts/import_cases.py server.py)"
     ],
     "additionalDirectories": [
       "/Volumes/ExtSSD/Users/docskky/Desktop/Works/Sandoll/font-mcp/.claude/skills"
