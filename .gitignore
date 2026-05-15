@@ -6,3 +6,13 @@ __pycache__/
 .claude/settings.local.json
 wiki_cache/
 .env
+
+# Runtime data (ChromaDB, wiki cache, font samples)
+data/
+
+# Word/Excel lock files
+~$*
+
+# Generated artefacts
+build_template.xlsx
+font-mcp-architecture.pptx
