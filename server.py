@@ -17,6 +17,9 @@ from typing import Optional
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
+import build_spec
+import extract_spec
+from font_builder import FontBuilder
 from font_ops import FontOps
 from memory import CaseMemory
 
@@ -31,6 +34,7 @@ _DATA_DIR = Path(
 mcp = FastMCP("font-tools")
 ops = FontOps()
 memory = CaseMemory(_DATA_DIR / "cases.json")
+builder = FontBuilder(ops, memory)
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -423,6 +427,116 @@ def add_korean_name_records(font_path: str, korean_family: str) -> str:
 
 각 단계마다 output_path 를 다음 단계의 font_path 로 사용 (체이닝).
 마지막에 validate_and_record."""
+
+
+# ──────────────────────────────────────────────────────────────────
+# 작업서(XLSX) 기반 패밀리 빌드
+# ──────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def parse_build_sheet(sheet_path: str) -> dict:
+    """[제작의뢰서] 양식의 XLSX 작업서를 파싱.
+
+    scripts/make_build_template.py 가 생성하는 6-시트 워크북 포맷을 따른다.
+    구조: meta / metrics / weights / outputs / names / subset.
+
+    반환:
+        meta·metrics·weights·outputs·extra_names·subset 가 풀린 dict.
+        오류 시 {"error": "..."}.
+    """
+    try:
+        spec = build_spec.parse(sheet_path)
+        d = spec.to_dict()
+        # 프리셋 unicodes 는 매우 클 수 있어 카운트만 노출
+        if d["subset"]["unicodes"]:
+            cnt = len(d["subset"]["unicodes"])
+            d["subset"]["unicodes"] = f"<list of {cnt} codepoints>"
+        return d
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def build_font_family(
+    sheet_path: str,
+    output_dir: str,
+    base_otf: Optional[dict[str, str]] = None,
+    base_ttf: Optional[dict[str, str]] = None,
+    variable_font: Optional[str] = None,
+    validate: bool = True,
+) -> dict:
+    """작업서(XLSX) + 베이스 폰트들로 전체 패밀리 빌드.
+
+    Args:
+        sheet_path: parse_build_sheet 가 받는 XLSX 경로.
+        output_dir: 산출물 루트. 하위에 OTF/ TTF/ WOFF2/ VF/ ... 디렉터리 생성.
+        base_otf: {weight_class: path} — OTF 가 outputs 에 enabled 면 필수.
+            예) {"400": "/abs/HCSSansTxRg.otf", "700": "/abs/HCSSansHdBd.otf"}
+        base_ttf: 같은 구조의 TTF 베이스. TTF 가 enabled 면 필수.
+        variable_font: VF 가 enabled 면 필수. 베이스 VF 의 절대 경로.
+        validate: 각 OTF/TTF 산출물에 fontbakery 실행 여부.
+            WOFF 류는 항상 검증 스킵 (fontbakery 지원 제한).
+
+    Returns:
+        {project, output_dir, results: [...], summary: {total, ok, errors, by_format}}
+        각 결과는 weight_class/style_name/fmt/output_path/validation_verdict/case_id.
+    """
+    try:
+        spec = build_spec.parse(sheet_path)
+        return builder.build(
+            spec=spec,
+            base_otf=base_otf or {},
+            base_ttf=base_ttf or {},
+            variable_font=variable_font,
+            output_dir=output_dir,
+            validate=validate,
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def extract_build_sheet(font_paths: list[str], output_xlsx: str) -> dict:
+    """기존 폰트 패밀리에서 6-시트 작업서(XLSX) 자동 생성.
+
+    parse_build_sheet 가 읽는 것과 동일한 스키마로, 입력 폰트들의 name 테이블·
+    head·hhea·OS/2·post 값을 채워 넣는다. 디자이너는 결과 XLSX 에서 필요한
+    필드만 검토·수정한 뒤 build_font_family 의 sheet_path 인자로 넘기면 된다.
+
+    매핑:
+        - meta      ← nameID 0/7/8/9(en+ko)/11/12/13/14 + head.fontRevision,
+                       project_name = nameID 1, scope 는 ko-KR 레코드 유무로 추정
+        - metrics   ← head.unitsPerEm, hhea, OS/2.sTypo*/usWin*/yStrikeout*/fsType,
+                       post.underline*, USE_TYPO_METRICS 비트 (Regular=400 기준)
+        - weights   ← 폰트별 한 행, usWeightClass 오름차순
+        - outputs   ← 입력 확장자 기반 권장값 (.otf→OTF, .ttf→TTF, fvar→VF, WOFF2 기본)
+        - names     ← auto-generated 외의 nameID (0/7/8/9/11~14 등) 만
+        - subset    ← 기본값 (preset=common_kr)
+
+    Args:
+        font_paths: 패밀리에 속한 폰트들의 절대 경로 리스트 (1개 이상).
+        output_xlsx: 결과 XLSX 의 절대 경로.
+    """
+    try:
+        return extract_spec.extract(font_paths, output_xlsx)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.prompt()
+def build_from_sheet(sheet_path: str) -> str:
+    """작업서(XLSX) → 폰트 패밀리 빌드 표준 워크플로."""
+    return f"""다음 순서로 처리:
+
+1. parse_build_sheet('{sheet_path}') 로 spec 미리보기
+   - outputs.enabled 가 어떤 포맷인지, weights[*].weight_class 가 무엇인지 확인
+2. 베이스 폰트 경로를 weight_class 별로 묶어 dict 작성:
+   - base_otf={{"400": "/abs/...Rg.otf", "700": "/abs/...Bd.otf", ...}}
+   - base_ttf={{...}}  (TTF 가 enabled 면)
+   - variable_font="/abs/...VF.ttf"  (VF 가 enabled 면)
+3. build_font_family(sheet_path='{sheet_path}', output_dir='/abs/out', base_otf=..., base_ttf=..., variable_font=...)
+4. summary.errors > 0 이면 results 의 error 메시지 확인
+5. PASS/WARN/FAIL 결과는 cases.json 에 자동 저장됨 — find_similar_cases 로 재활용 가능"""
 
 
 if __name__ == "__main__":
